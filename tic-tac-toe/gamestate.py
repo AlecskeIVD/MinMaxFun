@@ -2,9 +2,7 @@ import random
 
 
 class Gamestate:
-    def __init__(self, board=None, lookup_table=None, turn=1):
-        if lookup_table is None:
-            lookup_table = {}
+    def __init__(self, board=None, turn=1):
         if board is None:
             board = [
                 [" ", " ", " "],
@@ -15,9 +13,6 @@ class Gamestate:
             board = [row.copy() for row in board]
         self.board = board
         self.turn = turn
-
-        # It will be useful for different gamestates to share a lookup_table since this may lead to a quicker evaluation
-        self.lookup_table = lookup_table
 
     def is_terminal(self):
         return self.turn >= 10 or (self.utility() != 0)
@@ -30,7 +25,7 @@ class Gamestate:
         return output
 
     def copy(self):
-        return Gamestate(self.board, self.lookup_table, self.turn)
+        return Gamestate(self.board, self.turn)
 
     def make_move(self, i, j) -> bool:
         if self.board[i][j] != " ":
@@ -79,7 +74,7 @@ class Gamestate:
         for row in self.board:
             print("|", end="")
             for char in row:
-                print(" "+char + " |",end="")
+                print(" "+char + " |", end="")
             print("")
             print(" ---"*3 + " ")
 
@@ -89,10 +84,61 @@ class Gamestate:
             i, j = random.randint(0, 2), random.randint(0, 2)
 
     def pc(self):
-        pass
+        if self.turn % 2 == 1:
+            i, j = self.max(return_pos=True)
+        else:
+            i, j = self.min(return_pos=True)
+        if not self.make_move(i, j):
+            raise Exception
 
     def x_wins(self):
         return self.utility() == 1
 
     def o_wins(self):
         return self.utility() == -1
+
+    def max(self, return_pos=False):
+        if self.is_terminal():
+            return self.utility()
+        best_eval = -2
+        best_move = None
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == " ":
+                    new_gs = self.copy()
+                    new_gs.make_move(i, j)
+                    val2 = new_gs.min()
+                    if val2 == 1:
+                        # This move leads to guaranteed win
+                        if return_pos:
+                            return i, j
+                        return 1
+                    if val2 > best_eval or best_move is None:
+                        best_eval = val2
+                        best_move = i, j
+        if return_pos:
+            return best_move
+        return best_eval
+
+    def min(self, return_pos=False):
+        if self.is_terminal():
+            return self.utility()
+        best_eval = 2
+        best_move = None
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == " ":
+                    new_gs = self.copy()
+                    new_gs.make_move(i, j)
+                    val2 = new_gs.max()
+                    if val2 == -1:
+                        # This move leads to guaranteed win
+                        if return_pos:
+                            return i, j
+                        return -1
+                    if val2 < best_eval or best_move is None:
+                        best_eval = val2
+                        best_move = i, j
+        if return_pos:
+            return best_move
+        return best_eval
